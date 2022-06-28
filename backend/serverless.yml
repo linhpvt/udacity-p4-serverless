@@ -1,5 +1,5 @@
 # TODO: Change the name of the org
-org: LinhPVT
+org: linhpvt
 app: serverless-todo-app
 service: serverless-todo-app
 
@@ -80,7 +80,7 @@ functions:
           cors: true
           authorizer: Auth
           request:
-            schema:
+            schemas:
               application/json: ${file(models/create-todo-model.json)}
     iamRoleStatements:
       - Effect: Allow
@@ -98,7 +98,7 @@ functions:
           cors: true
           authorizer: Auth
           request:
-            schema:
+            schemas:
               application/json: ${file(models/update-todo-model.json)}
     iamRoleStatements:
       - Effect: Allow
