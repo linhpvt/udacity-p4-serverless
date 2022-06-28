@@ -1,0 +1,15 @@
+
+export const Cfg = {
+  TODOS_TABLE: process.env.TODOS_TABLE,
+  TODOS_CREATED_AT_INDEX: process.env.TODOS_CREATED_AT_INDEX,
+  ATTACHMENT_S3_BUCKET: process.env.ATTACHMENT_S3_BUCKET,
+  WEB_KEY_SET: process.env.WEB_KEY_SET,
+  SIGNED_URL_EXPIRATION: parseInt(process.env.SIGNED_URL_EXPIRATION) 
+} as {
+  TODOS_TABLE: string,
+  TODOS_CREATED_AT_INDEX: string,
+  ATTACHMENT_S3_BUCKET: string,
+  WEB_KEY_SET: string,
+  SIGNED_URL_EXPIRATION: number
+
+}

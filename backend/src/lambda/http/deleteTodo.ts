@@ -6,15 +6,26 @@ import { cors, httpErrorHandler } from 'middy/middlewares'
 
 import { deleteTodo } from '../../businessLogic/todos'
 import { getUserId } from '../utils'
+import { buildResponse } from '../../utils/index';
+import { HttpStatus } from '../../consts/httpStatus';
 
 export const handler = middy(
   async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
-    const todoId = event.pathParameters.todoId
-    // TODO: Remove a TODO item by id
+    const { pathParameters: { todoId = ''} = {} } = event;
     
-    return undefined
-  }
-)
+    // TODO: Remove a TODO item by id
+    if (!todoId) {
+      return buildResponse(HttpStatus.BAD_REQUEST, { message: 'todo id not provided' });
+    }
+    
+    const userId = getUserId(event);
+    if (!userId) {
+      buildResponse(HttpStatus.SYSTEM_ERROR, { message: 'Can not get user id'});
+    }
+
+    await deleteTodo(todoId, userId)
+    return buildResponse(HttpStatus.SUCCESS, null);   
+  });
 
 handler
   .use(httpErrorHandler())
@@ -22,4 +33,4 @@ handler
     cors({
       credentials: true
     })
-  )
+  );

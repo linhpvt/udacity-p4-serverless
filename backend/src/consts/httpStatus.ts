@@ -1,0 +1,7 @@
+export const HttpStatus = {
+  CREATED: 201,
+  SUCCESS: 200,
+  BAD_REQUEST: 401,
+  NOT_FOUND: 404,
+  SYSTEM_ERROR: 500
+}
