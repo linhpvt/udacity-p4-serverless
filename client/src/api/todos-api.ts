@@ -1,7 +1,7 @@
-import { apiEndpoint } from '../config'
+import { apiEndpoint } from '../config';
 import { Todo } from '../types/Todo';
 import { CreateTodoRequest } from '../types/CreateTodoRequest';
-import Axios from 'axios'
+import Axios from 'axios';
 import { UpdateTodoRequest } from '../types/UpdateTodoRequest';
 
 export async function getTodos(idToken: string): Promise<Todo[]> {
@@ -13,8 +13,8 @@ export async function getTodos(idToken: string): Promise<Todo[]> {
       'Authorization': `Bearer ${idToken}`
     },
   })
-  console.log('Todos:', response.data)
-  return response.data.items
+  console.log('Todos:', response.data);
+  return response.data.items;
 }
 
 export async function createTodo(
