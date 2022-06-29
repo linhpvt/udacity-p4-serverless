@@ -28,23 +28,27 @@ export async function createTodo(todo: TodoItem): Promise<TodoItem> {
 }
 
 export async function updateTodo(
-  todoId: String,
-  userId: String,
-  updatedTodo: TodoUpdate,
+  todoId: string,
+  userId: string,
+  item: TodoUpdate,
 ): Promise<TodoUpdate> {
   logger.info('Updating todoId: ', todoId, ' userId: ', userId);
   const result = await dyOps.updateItem(TodoTable, {
       todoId,
       userId,
     },
-    'set name = :name, dueDate = :dueDate, done = :done',
+    'set #name = :name, #dueDate = :dueDate, #done = :done',
     {
-      ':name': updatedTodo.name,
-      ':dueDate': updatedTodo.dueDate,
-      ':done': updatedTodo.done,
+      ':name': item.name,
+      ':dueDate': item.dueDate,
+      ':done': item.done,
+    }, {
+      '#name': 'name',
+      '#dueDate': 'dueDate',
+      '#done': 'done',
     });
   
-  const resp: TodoUpdate = result ? updatedTodo : null;
+  const resp: TodoUpdate = result ? item : null;
   return resp;
 }
 
@@ -66,9 +70,11 @@ export async function createAttachmentSignedUrl(todoId: string, imageId: string,
     todoId,
     userId,
   },
-  'set attachmentUrl = :attachmentUrl',
+  'set #attachmentUrl = :attachmentUrl',
   {
     ':attachmentUrl': `https://${BucketName}.s3.amazonaws.com/${imageId}`,
+  },{
+    '#attachmentUrl': 'attachmentUrl'
   });
 
   return updateResult ? putSignedUrl : '';

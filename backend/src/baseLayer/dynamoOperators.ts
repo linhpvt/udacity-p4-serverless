@@ -35,17 +35,18 @@ export async function addItem<T>(TableName, Item: T): Promise<T> {
   return result;
 }
 
-export async function updateItem(TableName: string,  Key: any, UpdateExpression: string, ExpressionAttributeValues: any): Promise<Boolean> {
+export async function updateItem(TableName: string,  Key: any, UpdateExpression: string, ExpressionAttributeValues: any, ExpressionAttributeNames: any): Promise<Boolean> {
   let result = true;
   try {
     await client.update({
       TableName,
       Key,
       UpdateExpression,
-      ExpressionAttributeValues
+      ExpressionAttributeValues,
+      ExpressionAttributeNames
     }).promise();
   } catch (e) {
-    logger.error(`updateItem-${TableName} ${e.message}`, TableName, Key, UpdateExpression, ExpressionAttributeValues);
+    logger.error(`updateItem-${TableName} ${e.message}`, TableName, Key, UpdateExpression, ExpressionAttributeValues, ExpressionAttributeNames);
     result = false;
   }
   return result;
