@@ -1,5 +1,11 @@
+export interface TodoReport {
+  time: number
+  text: string
+}
 export interface UpdateTodoRequest {
   name: string
   dueDate: string
-  done: boolean
+  status: string
+  description?: string
+  reports?: TodoReport[]
 }

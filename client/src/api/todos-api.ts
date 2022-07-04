@@ -7,14 +7,18 @@ import { UpdateTodoRequest } from '../types/UpdateTodoRequest';
 export async function getTodos(idToken: string): Promise<Todo[]> {
   console.log('Fetching todos')
 
-  const response = await Axios.get(`${apiEndpoint}/todos`, {
+  const { data: {items = []} = {}} = await Axios.get(`${apiEndpoint}/todos`, {
     headers: {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${idToken}`
     },
   })
-  console.log('Todos:', response.data);
-  return response.data.items;
+  console.log('Todos:', items);
+  return items.reduceRight((prev: any, cur: any) => {
+    prev = [cur, ...prev]
+    return prev
+  }, []);
+  
 }
 
 export async function createTodo(
