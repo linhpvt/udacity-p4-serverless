@@ -28,8 +28,13 @@ provider:
     TODOS_CREATED_AT_INDEX: CreatedAtIndex
     ATTACHMENT_S3_BUCKET: linhpvt-images-${self:provider.stage}
     WEB_KEY_SET: https://dev-myljydm5.us.auth0.com/.well-known/jwks.json
+
     # 5 mins
     SIGNED_URL_EXPIRATION: 300
+    # store socket connections
+    CONNECTIONS_TABLE: LinhpvtConnections-${self:provider.stage}
+    # store thumbnail images created from ATTACHMENT_S3_BUCKET
+    THUMBNAILS_S3_BUCKET: linhpvt-images-thumbnail-${self:provider.stage}
 
   logs:
     # Enable API Gateway logs
@@ -43,6 +48,10 @@ provider:
             - xray:PutTelemetryRecords
             - xray:PutTraceSegments
           Resource: '*'
+
+custom:
+  # topic name definition
+  topicName: imagesTopic-${self:provider.stage}
 
 functions:
   Auth:
@@ -146,8 +155,107 @@ functions:
         Action:
           - dynamodb:UpdateItem
         Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.TODOS_TABLE}
+
+  #
+  # S3 events trigger one and only one destination target
+  # this means: once the an image added to the Attachment, the event will be fired
+  # Situation:
+  # when an image created in Images bucket, we want to create a new resized image handled by another lambda function
+  # and send notifiction
+  # SNS support Dead letter Queue
+  # allow publish/subscribe on multiple publishers and subscribers by TOPICS
+  # use async pattern for this case.
+  #
+
+  # send notification once new images added to images bucket
+  SendUploadNotifications:
+    # ENVs only for this lambda
+    environment:
+      STAGE: ${self:provider.stage}
+      API_ID:
+        # WebsocketsApi created by cloundformation
+        Ref: WebsocketsApi
+    # the handler for the event
+    handler: src/lambda/s3/sendNotifications.handler
+    events:
+      # event fired from sns -> topic named `${self:custom.topicName}`
+      - sns:
+          arn:
+            # the Join function provided by serverless framework
+            # Fn::Join -> arn:aws:sns:us-east-1:547argthlddf1425ged:imagesTopic-dev
+            Fn::Join:
+              - ':'
+              - - arn:aws:sns
+                # return the arn of AWS -> Region
+                - Ref: AWS::Region
+                # arn of AWS account
+                - Ref: AWS::AccountId
+                - ${self:custom.topicName}
+          topicName: ${self:custom.topicName}
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - dynamodb:Scan
+          - dynamodb:DeleteItem
+        Resource: arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.CONNECTIONS_TABLE}
+  # another lambda function that handles the same event fired from SNS TOPIC
+  ResizeImage:
+    handler: src/lambda/s3/resizeImage.handler
+    events:
+      # sns event -> what Topic we wish to bind this handler to
+      - sns:
+          arn:
+            Fn::Join:
+              - ':'
+              - - arn:aws:sns
+                - Ref: AWS::Region
+                - Ref: AWS::AccountId
+                - ${self:custom.topicName}
+          topicName: ${self:custom.topicName}
+    # permissions
+    iamRoleStatements:
+      # source bucket ATTACHMENT_S3_BUCKET, allowed get object
+      - Effect: Allow
+        Action:
+          # - s3:PutObject
+          - s3:GetObject
+        Resource: arn:aws:s3:::${self:provider.environment.ATTACHMENT_S3_BUCKET}/*
+      # destination bucket, allow put object
+      - Effect: Allow
+        Action:
+          - s3:PutObject
+          # - s3:GetObject
+        Resource: arn:aws:s3:::${self:provider.environment.THUMBNAILS_S3_BUCKET}/*
+  # logical name manged by serverless framework
+  ConnectHandler:
+    handler: src/lambda/websocket/connect.handler
+    events:
+      # socket event
+      - websocket:
+          # special route of socket when new connect request
+          route: $connect
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - dynamodb:PutItem
+        Resource: arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.CONNECTIONS_TABLE}
+  # disconnect lamba function
+  DisconnectHandler:
+    handler: src/lambda/websocket/disconnect.handler
+    events:
+      # socket event
+      - websocket:
+          # special route for disconnect
+          route: $disconnect
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - dynamodb:DeleteItem
+        Resource: arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.CONNECTIONS_TABLE}
+
 resources:
   Resources:
+    # API GATEWAY
     # Add necessary AWS resources. You will need at least the following AWS resources
     # TODO: Fill the properties
     # Feel free to change the names as you like.
@@ -162,6 +270,7 @@ resources:
         RestApiId:
           Ref: ApiGatewayRestApi
 
+    # DYNAMODB
     # TODO: Create a DynamoDB table with local secondary index and a composite key
     TodosTable:
       Type: AWS::DynamoDB::Table
@@ -192,21 +301,37 @@ resources:
             Projection:
               ProjectionType: ALL # What attributes will be copied to an index
 
+    WebSocketConnectionsDynamoDBTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+        BillingMode: PAY_PER_REQUEST
+        # declare table name
+        TableName: ${self:provider.environment.CONNECTIONS_TABLE}
+
+    # S3 BUCKETS
     # TODO: Complete the bucket properties below.
     # Do not forget to add the CorsConfiguration property
-    # AttachmentsBucket:
-    #   Type: AWS::S3::Bucket
-    #   Properties:
-    # define the bucket
     AttachmentsBucket:
       Type: AWS::S3::Bucket
-      # DependsOn: SNSTopicPolicy
+      # bucket creation depends on other AWS resource, in this case, SNSTopicPolicy
+      # in this case, SNSTopicPolicy must be created first then we create the bucket
+      DependsOn: SNSTopicPolicy
       Properties:
         BucketName: ${self:provider.environment.ATTACHMENT_S3_BUCKET}
-        # NotificationConfiguration:
-        #   TopicConfigurations:
-        #     - Event: s3:ObjectCreated:Put
-        #       Topic: !Ref ImagesTopic
+        # configure notification for this S3 bucket
+        NotificationConfiguration:
+          TopicConfigurations:
+            # declare event source that fire the notification
+            - Event: s3:ObjectCreated:Put
+              # declare the destination target to which we send the event to
+              Topic: !Ref ImagesTopic
+        # define CORS for this bucket, that allows users access the bucket over internet
         CorsConfiguration:
           CorsRules:
             - AllowedOrigins:
@@ -243,3 +368,40 @@ resources:
         # to which BUCKET we want this policy attatched to
         # BUCKET ID created in the same cloudformation template
         Bucket: !Ref AttachmentsBucket
+
+    # only create a bucket named THUMBNAILS_S3_BUCKET without policy attached
+    ThumbnailsBucket:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: ${self:provider.environment.THUMBNAILS_S3_BUCKET}
+
+    # SNS SERVICE
+    # create a SNS Topic Policy
+    SNSTopicPolicy:
+      Type: AWS::SNS::TopicPolicy
+      Properties:
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Principal:
+                # all AWS resources are able to publish to the TOPIC
+                AWS: '*'
+              Action: sns:Publish
+              # the topic that the Publish Action applying to
+              Resource:
+                # return aws arn of the created ImagesTopic
+                !Ref ImagesTopic
+              # which event source associated with this TOPIC
+              Condition:
+                ArnLike:
+                  AWS:SourceArn: arn:aws:s3:::${self:provider.environment.ATTACHMENT_S3_BUCKET}
+        # the list of topics to which this policy applied to
+        Topics:
+          - !Ref ImagesTopic
+    # create a new SNS Topic named `${self:custom.topicName}`
+    ImagesTopic:
+      Type: AWS::SNS::Topic
+      Properties:
+        DisplayName: Image bucket topic
+        TopicName: ${self:custom.topicName}

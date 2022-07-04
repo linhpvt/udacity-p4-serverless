@@ -65,3 +65,13 @@ export async function deleteItem(TableName: string, Key: object): Promise<Boolea
   }
   return result;
 }
+
+export async function scanItems<T>(TableName: string): Promise<T[]> {
+  try {
+    const { Items = [] } = await client.scan({ TableName}).promise();
+    return Items as T[];
+  } catch (e: any) {
+    logger.error('scanItems', TableName, e);
+  }
+  return [];
+}

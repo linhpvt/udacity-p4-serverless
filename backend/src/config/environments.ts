@@ -1,15 +1,22 @@
-
-export const Cfg = {
-  TODOS_TABLE: process.env.TODOS_TABLE,
-  TODOS_CREATED_AT_INDEX: process.env.TODOS_CREATED_AT_INDEX,
-  ATTACHMENT_S3_BUCKET: process.env.ATTACHMENT_S3_BUCKET,
-  WEB_KEY_SET: process.env.WEB_KEY_SET,
-  SIGNED_URL_EXPIRATION: parseInt(process.env.SIGNED_URL_EXPIRATION) 
-} as {
+export interface IConfig {
   TODOS_TABLE: string,
   TODOS_CREATED_AT_INDEX: string,
   ATTACHMENT_S3_BUCKET: string,
   WEB_KEY_SET: string,
   SIGNED_URL_EXPIRATION: number
+  CONNECTIONS_TABLE: string,
+  THUMBNAILS_S3_BUCKET: string,
+}
 
+export const Cfg: IConfig = {
+  TODOS_TABLE: process.env.TODOS_TABLE,
+  TODOS_CREATED_AT_INDEX: process.env.TODOS_CREATED_AT_INDEX,
+  ATTACHMENT_S3_BUCKET: process.env.ATTACHMENT_S3_BUCKET,
+  WEB_KEY_SET: process.env.WEB_KEY_SET,
+  SIGNED_URL_EXPIRATION: parseInt(process.env.SIGNED_URL_EXPIRATION),
+
+  CONNECTIONS_TABLE: process.env.CONNECTIONS_TABLE,
+  THUMBNAILS_S3_BUCKET: process.env.THUMBNAILS_S3_BUCKET,
+
+  
 }
