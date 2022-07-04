@@ -1,5 +1,11 @@
+import { TodoReport } from "./TodoReport"
+
 export interface TodoUpdate {
   name: string
   dueDate: string
-  done: boolean
+  status: string
+
+  updatedAt: string
+  description: string
+  reports: TodoReport[]
 }

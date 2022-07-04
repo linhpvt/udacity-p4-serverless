@@ -20,6 +20,7 @@ export const handler = middy(
     if (!todoId || !userId || (Object.keys(upTodo).length === 0)) {
       return buildResponse(HttpStatus.BAD_REQUEST, { message: 'TODO ID not found or payload is empty', todoId, userId, updatedTodo: upTodo });
     }
+    upTodo
     const result = await updateTodo(todoId, upTodo, userId);
     if (result) {
       return buildResponse(HttpStatus.SUCCESS, { item: result });

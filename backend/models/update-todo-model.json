@@ -9,14 +9,26 @@
     "dueDate": {
       "type": "string"
     },
-    "done": {
-      "type": "boolean"
+    "status": {
+      "type": "string"
+    },
+    "reports": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "time": {"type": "number"},
+          "text": {"type": "string"}
+        }
+      },
+      "required": ["time", "text"],
+      "additionalProperties": false
     }
   },
   "required": [
     "name",
     "dueDate",
-    "done"
+    "status"
   ],
   "additionalProperties": false
 }

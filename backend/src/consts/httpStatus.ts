@@ -3,5 +3,6 @@ export const HttpStatus = {
   SUCCESS: 200,
   BAD_REQUEST: 401,
   NOT_FOUND: 404,
-  SYSTEM_ERROR: 500
+  SYSTEM_ERROR: 500,
+  STALE_CONNECTION: 410,
 }

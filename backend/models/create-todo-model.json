@@ -8,11 +8,18 @@
     },
     "dueDate": {
       "type": "string"
+    },
+    "description": {
+      "type":"string"
+    },
+    "status": {
+      "type": "string"
     }
   },
   "required": [
     "name",
-    "dueDate"
+    "dueDate",
+    "status"
   ],
   "additionalProperties": false
 }

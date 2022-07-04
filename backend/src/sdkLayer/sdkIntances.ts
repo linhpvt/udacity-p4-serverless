@@ -28,5 +28,5 @@ export function getS3Instance(): AWSSDK.S3 {
 }
 
 export function getApiGatewayManagementApi(connectionParams: any): AWSSDK.ApiGatewayManagementApi {
-  return new AWS.ApiGatewayManagementApi(connectionParams);
+  return new AWSSDK.ApiGatewayManagementApi(connectionParams);
 }

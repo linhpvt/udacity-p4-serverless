@@ -3,22 +3,14 @@ import 'source-map-support/register';
 import { deleteItem, scanItems } from '../../baseLayer/dynamoOperators';
 import { Cfg } from '../../config/environments';
 
-import { getApiGatewayManagementApi } from '../../sdkLayer/sdkIntances';
-import { toJson } from '../../utils/index';
+import { toJson } from '../../utils';
 import { createLogger } from '../../utils/logger';
+import { sendMessage } from '../../baseLayer/socketOperators';
+import { HttpStatus } from '../../consts/httpStatus';
 
 const logger = createLogger('sendNotification');
 
 const CONNECTIONS_TABLE = Cfg.CONNECTIONS_TABLE;
-
-// local environment for this lambda function
-const STAGE = process.env.STAGE;
-const APIID = process.env.API_ID;
-const connectionParams = {
-  apiVersion: "2018-11-29",
-  endpoint: `${APIID}.execute-api.us-east-1.amazonaws.com/${STAGE}`
-}
-const apiGateway = getApiGatewayManagementApi(connectionParams);
 
 export const handler: SNSHandler = async (event: SNSEvent) => {
   const { Records } = event;
@@ -31,10 +23,9 @@ export const handler: SNSHandler = async (event: SNSEvent) => {
 
 async function processS3Event(s3Event: S3Event) {
   // interate over s3 records
-  const { Records = []} = s3Event;
+  const { Records = [] } = s3Event;
 
   const connections = await scanItems<{ id: string }>(CONNECTIONS_TABLE);
-  
   // no connections to send notification to
   if (connections.length === 0) {
     return;
@@ -48,22 +39,12 @@ async function processS3Event(s3Event: S3Event) {
     // send notification to all connection;
     for (const c of connections) {
       const connectionId = c.id;
-      await sendMessageToClient(connectionId, payload);
-    }
-  }
-}
-
-async function sendMessageToClient(connectionId, payload) {
-  try {
-    await apiGateway.postToConnection({
-      ConnectionId: connectionId,
-      Data: toJson(payload),
-    }).promise()
-  } catch (e: any) {
-    // the old connection
-    if (e.statusCode === 410) {
-      logger.error('Stale connection', connectionId)
-      await deleteItem(CONNECTIONS_TABLE, { id: connectionId });
+      logger.info(`SEND TO ${connectionId} - ${JSON.stringify(payload)}`);
+      const status = await sendMessage(connectionId, payload);
+      // delete stale connection.
+      if (status === HttpStatus.STALE_CONNECTION) {
+        deleteItem(CONNECTIONS_TABLE, { id: connectionId });
+      }
     }
   }
 }

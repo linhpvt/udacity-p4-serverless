@@ -37,15 +37,18 @@ export async function updateTodo(
       todoId,
       userId,
     },
-    'set #name = :name, #dueDate = :dueDate, #done = :done',
+    'set #name = :name, #dueDate = :dueDate, #status = :status, #updatedAt = :updatedAt, #description = :description, #reports = :reports ',
     {
       ':name': item.name,
       ':dueDate': item.dueDate,
-      ':done': item.done,
+      ':status': item.status,
+      ':updatedAt': item.updatedAt,
+      ':description': item.description,
+       ':reports': item.reports,
     }, {
       '#name': 'name',
       '#dueDate': 'dueDate',
-      '#done': 'done',
+      '#status': 'status',
     });
   
   const resp: TodoUpdate = result ? item : null;

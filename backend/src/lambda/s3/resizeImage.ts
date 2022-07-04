@@ -31,7 +31,6 @@ async function processImage(record: S3EventRecord) {
   const key = record.s3.object.key;
   // source bucket
   let resp = await getObject(ATTACHMENT_S3_BUCKET, key);
-  logger.info('processImage - getObject', resp);
   if (!resp) {
     logger.error('Can not get the image from', ATTACHMENT_S3_BUCKET, key);
     return;
