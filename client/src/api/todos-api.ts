@@ -5,7 +5,7 @@ import Axios from 'axios';
 import { UpdateTodoRequest } from '../types/UpdateTodoRequest';
 
 export async function getTodos(idToken: string): Promise<Todo[]> {
-  console.log('Fetching todos')
+  // console.log('Fetching todos')
 
   const { data: {items = []} = {}} = await Axios.get(`${apiEndpoint}/todos`, {
     headers: {
@@ -13,7 +13,7 @@ export async function getTodos(idToken: string): Promise<Todo[]> {
       'Authorization': `Bearer ${idToken}`
     },
   })
-  console.log('Todos:', items);
+  // console.log('Todos:', items);
   return items.reduceRight((prev: any, cur: any) => {
     prev = [cur, ...prev]
     return prev

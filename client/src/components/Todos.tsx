@@ -1,23 +1,19 @@
-import dateFormat from 'dateformat'
 import { History } from 'history'
-import update from 'immutability-helper'
 import * as React from 'react'
 import {
   Button,
-  Checkbox,
   Divider,
   Grid,
   Header,
   Icon,
   Input,
   Image,
-  Loader,
-  Label
-} from 'semantic-ui-react'
+  Loader} from 'semantic-ui-react'
 
-import { createTodo, deleteTodo, getTodos, patchTodo } from '../api/todos-api'
+import { createTodo, deleteTodo, getTodos } from '../api/todos-api'
 import Auth from '../auth/Auth'
 import { TodoStatus } from '../consts/todoStatus'
+import { calculateDueDate, todoStatusToText } from '../helpers'
 import { Todo } from '../types/Todo'
 
 interface TodosProps {
@@ -64,7 +60,7 @@ export class Todos extends React.PureComponent<TodosProps, TodosState> {
       return;
     }
     try {
-      const dueDate = this.calculateDueDate()
+      const dueDate = calculateDueDate()
       this.startRequest()
       const newTodo = await createTodo(this.props.auth.getIdToken(), {
         name: this.state.newTodoName,
@@ -87,6 +83,11 @@ export class Todos extends React.PureComponent<TodosProps, TodosState> {
   }
 
   onTodoDelete = async (todoId: string) => {
+    // eslint-disable-next-line no-restricted-globals
+    const ok = confirm('Are you soure to delete this TODO?')
+    if (!ok) {
+      return
+    }
     try {
       this.startRequest()
       await deleteTodo(this.props.auth.getIdToken(), todoId)
@@ -100,23 +101,6 @@ export class Todos extends React.PureComponent<TodosProps, TodosState> {
     }
   }
 
-  onTodoCheck = async (pos: number) => {
-    try {
-      const todo = this.state.todos[pos]
-      await patchTodo(this.props.auth.getIdToken(), todo.todoId, {
-        name: todo.name,
-        dueDate: todo.dueDate,
-        status: TodoStatus.COMPLETED
-      })
-      this.setState({
-        todos: update(this.state.todos, {
-          [pos]: { status: { $set: TodoStatus.COMPLETED } }
-        })
-      })
-    } catch {
-      alert('Todo deletion failed')
-    }
-  }
   inputFocus = () => {
     const taskName = document.getElementById('taskName')
     if (!taskName) {
@@ -197,9 +181,37 @@ export class Todos extends React.PureComponent<TodosProps, TodosState> {
     return (
       <Grid.Row>
         <Loader indeterminate active inline="centered">
-          TODO Requesting...
+          Calling API...
         </Loader>
       </Grid.Row>
+    )
+  }
+  renderHeaderTable() {
+    return (
+      <Grid.Row key={'0'} className="bolder">
+        <Grid.Column width={2} verticalAlign="middle">
+          STATUS
+        </Grid.Column>
+        <Grid.Column width={4} verticalAlign="middle">
+          TASK NAME
+        </Grid.Column>
+        <Grid.Column width={6} verticalAlign="middle">
+          DESCRIPTION
+        </Grid.Column>
+        <Grid.Column width={2} floated="right">
+          DUE DATE
+        </Grid.Column>
+        <Grid.Column width={1} floated="right">
+          ACTIONS
+        </Grid.Column>
+        <Grid.Column width={1} floated="right">
+          
+        </Grid.Column>
+        <Grid.Column width={16}>
+          <Divider />
+        </Grid.Column>
+      </Grid.Row>
+
     )
   }
 
@@ -207,20 +219,20 @@ export class Todos extends React.PureComponent<TodosProps, TodosState> {
     let { todos } = this.state
     return (
       <Grid padded>
+        {this.renderHeaderTable()}
         {todos.map((todo, pos) => {
           return (
             <Grid.Row key={todo.todoId}>
-              <Grid.Column width={1} verticalAlign="middle">
-                {/* <Checkbox
-                  onChange={() => this.onTodoCheck(pos)}
-                  checked={todo.done}
-                /> */}
-                {todo.status}
+              <Grid.Column width={2} verticalAlign="middle">
+                {todoStatusToText(todo.status)}
               </Grid.Column>
-              <Grid.Column width={10} verticalAlign="middle">
+              <Grid.Column width={4} verticalAlign="middle">
                 {todo.name}
               </Grid.Column>
-              <Grid.Column width={3} floated="right">
+              <Grid.Column width={6} verticalAlign="middle">
+                {todo.description}
+              </Grid.Column>
+              <Grid.Column width={2} floated="right">
                 {todo.dueDate}
               </Grid.Column>
               <Grid.Column width={1} floated="right">
@@ -252,11 +264,5 @@ export class Todos extends React.PureComponent<TodosProps, TodosState> {
         })}
       </Grid>
     )
-  }
-
-  calculateDueDate(): string {
-    const date = new Date()
-    date.setDate(date.getDate() + 7)
-    return dateFormat(date, 'yyyy-mm-dd') as string
   }
 }

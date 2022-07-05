@@ -32,3 +32,6 @@ code {
 .width100 {
   width: 100%;
 }
+.bolder {
+  font-weight: bolder;
+}
