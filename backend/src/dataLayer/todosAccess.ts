@@ -49,8 +49,11 @@ export async function updateTodo(
       '#name': 'name',
       '#dueDate': 'dueDate',
       '#status': 'status',
+      '#updatedAt': 'updatedAt',
+      '#description': 'description',
+      '#reports': 'reports',
     });
-  
+
   const resp: TodoUpdate = result ? item : null;
   return resp;
 }

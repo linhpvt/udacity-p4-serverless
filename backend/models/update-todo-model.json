@@ -23,6 +23,9 @@
       },
       "required": ["time", "text"],
       "additionalProperties": false
+    },
+    "description": {
+      "type": "string"
     }
   },
   "required": [
